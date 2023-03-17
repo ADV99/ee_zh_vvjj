@@ -1,3 +1,7 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import networkx as nx
+#from networkx.drawing.nx_pydot import graphviz_layout
 import ROOT
 from copy import deepcopy
 
@@ -21,15 +25,22 @@ class Process:
 
         return df
 
-
-# ___________________________________________________________________________________________________
+# ___________________________________________________________________________________________________ 
 class Selection:
+
+    edges = []
+
     def __init__(self, value, children=None):
         self.value = value
         self.children = children or []
+        self.indices = [0]
 
     def add_child(self, node):
+        node.indices[0] = self.indices[0]+1
+        node.indices += [len(self.children)]
         self.children.append(node)
+        self.edges.append([''.join(str(x) for x in self.indices), ''.join(str(x) for x in node.indices)])
+        print(self.edges)
 
     def __str__(self):
         return str(self.value)
@@ -45,6 +56,11 @@ class Selection:
             nodes += child.get_all_nodes()
         return nodes
 
+    def visualize(self):
+        G = nx.DiGraph()
+        G.add_edges_from(self.edges)
+        nx.draw_networkx(G)
+        plt.savefig("/eos/home-a/adelvecc/graph.pdf")
 
 # __________________________________________________________________________________________________
 ## all MC processes are defined here
@@ -158,32 +174,54 @@ processes.append(zz)
 processes.append(zqq)
 processes.append(qqh)
 
-### now produce selections #######
 
-scores = ["B", "C", "S", "G", "Q"]
-purities = ["L", "M", "H"]
+# __________________________________________________________________________________________________
+## all Selections are defined here
 
 
-def category_selection(fs, cuts):
+def category_selection(fs):
+
+    scores_not_fs = [s for s in scores if s != fs]
+    ortho_sel = []
+    for s in scores_not_fs:
+        ortho_sel.append("{} > {}".format(fs, s))
+
+    return " && ".join(ortho_sel)
+
+def purity_selection(fs, cuts):
+    purity_sel = "{} > {} && {} < {}".format(fs, cuts[0], fs, cuts[1])
+    return purity_sel
+
+
+def templates_selection(fs, cuts):
 
     scores_not_fs = [s for s in scores if s != fs]
     ortho_sel = ""
     for s in scores_not_fs:
-        ortho_sel += "{} > {} && ".format(fs, s)
+        ortho_sel += " {} > {} && ".format(fs, s)
 
     purity_sel = "{} > {} && {} < {}".format(fs, cuts[0], fs, cuts[1])
 
     return ortho_sel + purity_sel
 
 
+## Define selections
+# 1st row: Base selection
+# 2nd row: Categories
+# 3rd row: Purity
+
 sel_base = {
     "name": "base",
     "label": "",
-    "formula": "muons_p < 20 && electrons_p < 20 && costhetainv < 0.85 && costhetainv > -0.85 && M_jj > 123 && M_jj < 127 && Mrec_jj > 80 && Mrec_jj < 100",
+    "formula": "muons_p < 20 && electrons_p < 20 && costhetainv < 0.85 && costhetainv > -0.85",
     "latex": "",
 }
 
-selection_tree = Selection(sel_base)
+scores_S12 = ["B", "C", "S", "G", "Q"]
+scores_BDT = ["Hbb", "Hcc", "Hss", "Hgg", "Htautau", "HZZ_WW"]
+scores = scores_S12
+
+purities = ["L", "M", "H"]
 
 purity = dict()
 ## min and max cut to define the LP, MP, and HP categories
@@ -208,15 +246,27 @@ sel_dummy = {
     "latex": "",
 }
 
-## generate final selection cuts
 fs_categories = [s for s in scores if s != "Q"]
-for fs in fs_categories:
-    for p in purities:
-        sel = deepcopy(sel_dummy)
-        sel["name"] = "{}like_{}".format(fs, p)
-        sel["formula"] = category_selection(fs, purity[(fs, p)])
-        selection_tree.add_child(Selection(sel))
 
+## Generate tree of selections
+selection_tree = Selection(sel_base)
+for fs in fs_categories:
+    sel = deepcopy(sel_dummy)
+    sel["name"] = "{}like".format(fs)
+    sel["formula"] = category_selection(fs)
+    node = Selection(sel)
+    selection_tree.add_child(node)
+    for p in purities:
+        sel2 = deepcopy(sel_dummy)
+        sel2["name"] = "{}like_{}".format(fs, p)
+        sel2["formula"] = purity_selection(fs, purity[(fs, p)])
+        node.add_child(Selection(sel2))
+
+#selection_tree.visualize()
+
+
+# __________________________________________________________________________________________________
+# Define 1D and 2D hists to produce
 
 h1s = [
     {

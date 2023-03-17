@@ -84,7 +84,8 @@ for proc in processes:
 ROOT.RDF.RunGraphs(df_list)
 
 ## now store histograms in ROOT files
-rdir = "/eos/user/s/selvaggi/analysis/zh_vvjj/templates2D/validation/"
+#rdir = "/eos/user/s/selvaggi/analysis/zh_vvjj/templates2D/validation/"
+rdir = "/eos/home-a/adelvecc/trying/"
 ldir = "output"
 os.system("mkdir -p {}".format(ldir))
 
