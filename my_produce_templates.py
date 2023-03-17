@@ -110,9 +110,9 @@ def compute_statistics(df_dict, processes):
     return stats
 
 def combine_significances(stats, selections, proc):
-    _ = [print(stats[sel][proc]["Significance"]) for sel in selections]
+    #_ = [print(stats[sel][proc]["Significance"]) for sel in selections]
     s = [stats[sel][proc]["Significance"]**2 for sel in selections]
-    print(s)
+    #print(s)
     return np.sqrt(np.sum(s))
 
 
@@ -138,10 +138,10 @@ def print_table(outputDir, stats, signal = ["Hss"]):
     for sel in stats.keys():
         row = [sel]
         for proc in list(stats.values())[0].keys():
-            row.append(stats[sel][proc]["Yields"])
+            row.append("{:.2f}".format(stats[sel][proc]["Yields"]))
             if proc in signal:
-                row.append(stats[sel][proc]["Efficiency"])
-                row.append(stats[sel][proc]["Significance"])
+                row.append("{:.2f}".format(stats[sel][proc]["Efficiency"]))
+                row.append("{:.2f}".format(stats[sel][proc]["Significance"]))
 
         print(*row, sep = ' & ', end='', file=f)
         print(' \\\\ ', file=f)

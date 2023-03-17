@@ -213,7 +213,7 @@ def templates_selection(fs, cuts):
 sel_base = {
     "name": "base",
     "label": "",
-    "formula": "muons_p < 20 && electrons_p < 20 && costhetainv < 0.85 && costhetainv > -0.85 && M_jj > 123 && M_jj < 125 && Mrec_jj > 80 && Mrec_jj < 100",
+    "formula": "muons_p < 20 && electrons_p < 20 && costhetainv < 0.85 && costhetainv > -0.85",
     "latex": "",
 }
 
