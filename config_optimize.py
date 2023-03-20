@@ -20,8 +20,8 @@ class Process:
         df = ROOT.RDataFrame("events", self.files)
         self.nevents = df.Count().GetValue()
         self.weight = (self.xsec * self.br * self.lumi) / self.nevents
-        print("{}: ".format(self.name))
-        print(" --> {}".format(int(self.nevents)))
+        #print("{}: ".format(self.name))
+        #print(" --> {}".format(int(self.nevents)))
 
         return df
 
@@ -178,7 +178,6 @@ processes.append(qqh)
 # __________________________________________________________________________________________________
 ## all Selections are defined here
 
-
 def category_selection(fs):
 
     scores_not_fs = [s for s in scores if s != fs]
@@ -224,18 +223,19 @@ scores = scores_S12
 fs_categories = [s for s in scores if s != "Q"]
 purities = ["L", "M", "H"]
 
-ll = np.arange(0.60,1.95, 0.01)
-LL = np.arange(0.62, 1.97, 0.01)
-#ll, LL = np.meshgrid(l1,l2)
 
 purity = dict()
-## min and max cut to define the LP, MP, and HP categories
+lmin = 0.6
+lmax = 1.95
+step = 0.05
+## min and max cut to define the LP, MP, and HP categories 
 for fs in fs_categories:
-    for l1 in ll:
-        for l2 in LL:
+    for l1 in np.arange(lmin, lmax - step, step):
+        for l2 in np.arange(l1 + step, lmax, step):
             purity[(fs, (l1,l2) , "L")] = (-999, l1)
             purity[(fs, (l1,l2) , "M")] = (l1, l2)
             purity[(fs, (l1,l2) , "H")] = (l2, 999)
+
 '''
 for fs in fs_categories:
     purity[fs] = dict()
@@ -261,13 +261,21 @@ for fs in fs_categories:
     sel = deepcopy(sel_dummy)
     sel["name"] = "{}like".format(fs)
     sel["formula"] = category_selection(fs)
-    node = Selection(sel)
-    selection_tree.add_child(node)
-    for p in purity:
-        sel2 = deepcopy(sel_dummy)
-        sel2["name"] = "{}like_{}_{}_{}".format(fs, p[1][0], p[1][1], p[2])
-        sel2["formula"] = purity_selection(fs, purity[p])
-        node.add_child(Selection(sel2))
+    node1 = Selection(sel)
+    selection_tree.add_child(node1)
+    
+    for l1 in np.arange(lmin, lmax - step, step):
+        for l2 in np.arange(l1 + step, lmax, step):
+            sel2 = deepcopy(sel_dummy)
+            sel2["name"] = "{}like_{}_{}".format(fs, l1, l2)
+            sel2["formula"] = "1==1"
+            node2 = Selection(sel2)
+            node1.add_child(node2)
+            
+            for p in purities:
+                sel3 = deepcopy(sel_dummy)
+                sel3["name"] = "{}like_{}_{}_{}".format(fs, l1, l2, p)
+                sel3["formula"] = purity_selection(fs, purity[(fs,(l1,l2),p)])
 
 #selection_tree.visualize()
 

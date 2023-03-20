@@ -51,7 +51,7 @@ def selection_dfs(df, proc, sel, h1s, h2s):
             "weight_{}".format(proc.name),
         )
         dfs.append(df_sel_h2)
-        dfs.append(counts)
+    dfs.append(counts)
 
     return dfs, df_sel
 

@@ -11,7 +11,7 @@ ROOT.ROOT.EnableImplicitMT()
 
 def selection_dfs(df, proc, sel, h1s, h2s):
 
-    print("{}: {}".format(sel["name"], sel["formula"]))
+    #print("{}: {}".format(sel["name"], sel["formula"]))
     df_sel = df.Filter(sel["formula"], sel["name"])
     counts = df_sel.Count()
     dfs = []
@@ -48,7 +48,7 @@ def selection_dfs(df, proc, sel, h1s, h2s):
             "weight_{}".format(proc.name),
         )
         dfs.append(df_sel_h2)
-        dfs.append(counts)
+    dfs.append(counts)
 
     return dfs, df_sel
 
@@ -78,12 +78,12 @@ def compute_statistics(df_dict, processes):
     for pr in processes:
         initial_counts[pr.name] = pr.nevents
         weights[pr.name] = pr.weight
-        print(" > " + pr.name + " --> nevents: ", pr.nevents, " --> weight: ", pr.weight)
+        #print(" > " + pr.name + " --> nevents: ", pr.nevents, " --> weight: ", pr.weight)
 
     stats = dict()
-    print("> Stats: ")
+    #print("> Stats: ")
     for sel in list(df_dict.values())[0].keys():
-        print("-> " + sel + ": ")
+        #print("-> " + sel + ": ")
         stats[sel] = dict()
         counting = 0
 
@@ -98,11 +98,11 @@ def compute_statistics(df_dict, processes):
 
             stats[sel][pr]["Significance"] = stats[sel][pr]["Yields"] / np.sqrt( np.sum([stats[sel][p]["Yields"] for p in df_dict.keys()] ))
 
-            print("--> Process: ", pr)
-            print("Counts: ", stats[sel][pr]['Counts'])
-            print("Yields: ", stats[sel][pr]['Yields'])
-            print("Efficiency: ", stats[sel][pr]["Efficiency"])
-            print("Significance: ", stats[sel][pr]["Significance"])
+            #print("--> Process: ", pr)
+            #print("Counts: ", stats[sel][pr]['Counts'])
+            #print("Yields: ", stats[sel][pr]['Yields'])
+            #print("Efficiency: ", stats[sel][pr]["Efficiency"])
+            #print("Significance: ", stats[sel][pr]["Significance"])
 
             #print(stats)
             #print(stats.values())
@@ -157,11 +157,13 @@ from config_optimize import processes, selection_tree, h1s, h2s
 ## run all selections with RDF producing hists and counts
 df_list = []
 df_dict = dict()
+print(" --> Booking cuts: ")
 for proc in processes:
     df_dict[proc.name] = produce_graphs(proc, selection_tree, h1s, h2s)
     for sel in selection_tree.get_all_nodes():
         df_list += df_dict[proc.name][sel.value["name"]]
 
+print(" --> Doing cuts: ")
 ROOT.RDF.RunGraphs(df_list)
 
 # _____________________________________________________________________________________________
@@ -178,47 +180,19 @@ interest['Clike'] = 'Hcc'
 interest['Slike'] = 'Hss'
 interest['Glike'] = 'Hgg'
 
-finals = dict()
-'''
+finals_dict = dict()
+
+print("\n --> Computing statistics : ")
 for c1 in selection_tree.children:
-    final_selections = [s.value["name"] for s in c1.children]
-    print(final_selections)
-    print(c1.value["name"])
-    finals[c1.value['name']] = combine_significances(stats, final_selections, [interest[c1.value['name']]])
-'''
+    print(" -> ", c1.value["name"])
+    finals_dict[c1.value["name"]] = dict()
+    # Compute significances for all limits
+    for c2 in c1.children:
+        print(" > ", c2.value["name"])
+        final_selections = [s.value["name"] for s in c2.children]
+        finals_dict[c1.value["name"]][c2.value["name"]] = combine_significances(stats, final_selections,[interest[c1.value['name']]])
 
-purities = ["L", "M", "H"]
-
-for like in interest:
-    for low, high in ll,LL:
-        string = "{}_{}_{}".format(like, low, high)
-        to_combine = [string+"_{}".format(p) for p in purities]
-        finals[string] = combine_significances(stats, to_combine, [interest[like]])
-
-print(finals)
-
-## Store histograms in ROOT files
-'''
-## now store histograms in ROOT files
-rdir = "/eos/home-a/adelvecc/winter2023/trying_BDT/"
-ldir = "/output/"
-os.system("mkdir -p {}".format(ldir))
-
-for sel in selection_tree.children:
-
-    fname = "{}/{}_hist2D.root".format(ldir, sel.value["name"])
-    tf = ROOT.TFile.Open(
-        fname,
-        "RECREATE",
-    )
-    
-    for proc in processes:
-        stats[proc.name] = dict()
-        stats[proc.name][]
-        
-        # Write hists to file
-        for df in df_dict[proc.name][sel.value["name"]][:-1]:
-            df.Write()
-
-    os.system("cp {} {}".format(fname, rdir))
-'''
+    # look for the best significance
+    sort_ed = sorted(list(finals_dict[c1.value["name"]].keys()), key = lambda x : finals_dict[c1.value["name"]][x][0]) 
+    print("Best cuts for " + c1.value["name"] + " : " , sort_ed[-1])
+    print("Best significance for " + like + " : ", finals_dict[sort_ed[-1]])

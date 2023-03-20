@@ -178,7 +178,6 @@ processes.append(qqh)
 # __________________________________________________________________________________________________
 ## all Selections are defined here
 
-
 def category_selection(fs):
 
     scores_not_fs = [s for s in scores if s != fs]
