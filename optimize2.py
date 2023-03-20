@@ -7,7 +7,10 @@ import numpy as np
 ROOT.ROOT.EnableImplicitMT()
 
 # ___________________________________________________________________________________________________
-
+def selection_opt(df, proc, sel):
+    df_sel = df.Filter(sel["formula"], sel["name"])
+    counts = [df_sel.Count()]
+    return counts, df_sel
 
 def selection_dfs(df, proc, sel, h1s, h2s):
 
@@ -52,6 +55,20 @@ def selection_dfs(df, proc, sel, h1s, h2s):
 
     return dfs, df_sel
 
+def produce_graphs_opt(proc, sels):
+    df = proc.rdf()
+    df_proc_dict = dict()
+
+    def traverse_tree(df, df_dict, sel):
+        df_dict[sel.value["name"]], df_sel = selection_opt(
+            df, proc, sel.value
+        )
+        for child in sel.children:
+            traverse_tree(df_sel, df_dict, child)
+    
+    traverse_tree(df, df_proc_dict, sels)
+    return df_proc_dict
+
 
 def produce_graphs(proc, sels, h1s, h2s):
 
@@ -78,12 +95,12 @@ def compute_statistics(df_dict, processes):
     for pr in processes:
         initial_counts[pr.name] = pr.nevents
         weights[pr.name] = pr.weight
-        print(" > " + pr.name + " --> nevents: ", pr.nevents, " --> weight: ", pr.weight)
+        #print(" > " + pr.name + " --> nevents: ", pr.nevents, " --> weight: ", pr.weight)
 
     stats = dict()
-    print("> Stats: ")
+    #print("> Stats: ")
     for sel in list(df_dict.values())[0].keys():
-        print("-> " + sel + ": ")
+        #print("-> " + sel + ": ")
         stats[sel] = dict()
         counting = 0
 
@@ -98,22 +115,24 @@ def compute_statistics(df_dict, processes):
 
             stats[sel][pr]["Significance"] = stats[sel][pr]["Yields"] / np.sqrt( np.sum([stats[sel][p]["Yields"] for p in df_dict.keys()] ))
 
-            print("--> Process: ", pr)
-            print("Counts: ", stats[sel][pr]['Counts'])
-            print("Yields: ", stats[sel][pr]['Yields'])
-            print("Efficiency: ", stats[sel][pr]["Efficiency"])
-            print("Significance: ", stats[sel][pr]["Significance"])
+            #print("--> Process: ", pr)
+            #print("Counts: ", stats[sel][pr]['Counts'])
+            #print("Yields: ", stats[sel][pr]['Yields'])
+            #print("Efficiency: ", stats[sel][pr]["Efficiency"])
+            #print("Significance: ", stats[sel][pr]["Significance"])
 
-            print(stats)
+            #print(stats)
             #print(stats.values())
 
     return stats
 
-def combine_significances(stats, selections, proc):
-    _ = [print(stats[sel][proc]["Significance"]) for sel in selections]
-    s = [stats[sel][proc]["Significance"]**2 for sel in selections]
-    print(s)
-    return np.sqrt(np.sum(s))
+def combine_significances(stats, selecs, processes):
+    result = []
+    #_ = [print(stats[sel][proc]["Significance"]) for sel in selections]
+    for proc in processes:
+        s = [stats[sel][proc]["Significance"]**2 for sel in selecs]
+        result.append(np.sqrt(np.sum(s)))
+    return result
 
 
 def print_table(outputDir, stats, signal = ["Hss"]):
@@ -138,10 +157,10 @@ def print_table(outputDir, stats, signal = ["Hss"]):
     for sel in stats.keys():
         row = [sel]
         for proc in list(stats.values())[0].keys():
-            row.append(stats[sel][proc]["Yields"])
+            row.append("{:.2e}".format(stats[sel][proc]["Yields"]))
             if proc in signal:
-                row.append(stats[sel][proc]["Efficiency"])
-                row.append(stats[sel][proc]["Significance"])
+                row.append("{:.3f}".format(stats[sel][proc]["Efficiency"]))
+                row.append("{:.3g}".format(stats[sel][proc]["Significance"]))
 
         print(*row, sep = ' & ', end='', file=f)
         print(' \\\\ ', file=f)
@@ -150,58 +169,56 @@ def print_table(outputDir, stats, signal = ["Hss"]):
     f.close()
 
 # _____________________________________________________________________________________________
-
-from my_config import processes, selection_tree, h1s, h2s, fs_categories, purities
+from config_optimize2 import processes, selection_tree_dict
 
 ## run all selections with RDF producing hists and counts
 df_list = []
 df_dict = dict()
-for proc in processes:
-    df_dict[proc.name] = produce_graphs(proc, selection_tree, h1s, h2s)
-    for sel in selection_tree.get_all_nodes():
-        df_list += df_dict[proc.name][sel.value["name"]]
 
+print(" --> Booking cuts: ")
+for limits in selection_tree_dict:
+    print(" -> For limits (l1,l2):", limits)
+    selection_tree = selection_tree_dict[limits]
+    df_dict[limits] = dict()
+    for proc in processes:
+        df_dict[limits][proc.name] = produce_graphs_opt(proc, selection_tree)
+        for sel in selection_tree.get_all_nodes():
+            df_list += df_dict[limits][proc.name][sel.value["name"]]
+
+print("\n --> Do cuts")
 ROOT.RDF.RunGraphs(df_list)
 
 # _____________________________________________________________________________________________
 
 ## Set output directory
-outdir = "/eos/home-a/adelvecc/winter2023/trying_BDT/output/"
+#outdir = "/eos/home-a/adelvecc/winter2023/trying_BDT/output/"
 
-## Compute Statistics and print tables
-stats = compute_statistics(df_dict, processes)
-print_table(outdir, stats)
+## Compute Statistics for all cuts
+interest = dict()
+interest['Blike'] = 'Hbb'
+interest['Clike'] = 'Hcc'
+interest['Slike'] = 'Hss'
+interest['Glike'] = 'Hgg'
 
-finals = dict()
-for c1 in selection_tree.children:
-    final_selections = [s.value["name"] for s in c1.children]
-    print(final_selections)
-    finals[c1.value['name']] = combine_significances(stats, final_selections, "Hss")
+stats_dict = dict()
+finals_dict = dict()
 
-print(finals)
-
-## Store histograms in ROOT files
-'''
-## now store histograms in ROOT files
-rdir = "/eos/home-a/adelvecc/winter2023/trying_BDT/"
-ldir = "/output/"
-os.system("mkdir -p {}".format(ldir))
-
-for sel in selection_tree.children:
-
-    fname = "{}/{}_hist2D.root".format(ldir, sel.value["name"])
-    tf = ROOT.TFile.Open(
-        fname,
-        "RECREATE",
-    )
+print("\n --> Computing statistics : ")
+for limits in selection_tree_dict:
+    print(" -> For limits (l1,l2):", limits)
+    stats[limits] = compute_statistics(df_dict[limits], processes)
+    selection_tree = selection_tree_dict[limits]
+    finals = dict()
+    for c1 in selection_tree.children: 
+        #print(" > ", c1.value['name'])
+        final_selections = [s.value["name"] for s in c1.children]
+        #print(final_selections) 
+        finals[c1.value['name']] = combine_significances(stats[limits], final_selections, [interest[c1.value['name']]])
     
-    for proc in processes:
-        stats[proc.name] = dict()
-        stats[proc.name][]
-        
-        # Write hists to file
-        for df in df_dict[proc.name][sel.value["name"]][:-1]:
-            df.Write()
+    finals_dict[limits] = finals
 
-    os.system("cp {} {}".format(fname, rdir))
-'''
+## Find the best cuts and print them
+for like in interest:
+    sort_ed = sorted(list(final_dicts.keys()), key = lambda x : final_dicts[x][like][0])
+    print("Best cuts for " + like + " : " , sort_ed[-1])
+    print("Best significance for " + like + " : ", final_dicts[sort_ed[-1]][like])

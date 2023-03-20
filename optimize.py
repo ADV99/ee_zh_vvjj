@@ -118,7 +118,7 @@ def combine_significances(stats, selecs, processes):
     return result
 
 
-def print_table(outputDir, stats, signal = ["Hbb", "Hcc", "Hss", "Hgg"]):
+def print_table(outputDir, stats, signal = ["Hss"]):
 
     f = open(outputDir+"/outputTabular.txt","w")
 
@@ -152,8 +152,7 @@ def print_table(outputDir, stats, signal = ["Hbb", "Hcc", "Hss", "Hgg"]):
     f.close()
 
 # _____________________________________________________________________________________________
-
-from my_config import processes, selection_tree, h1s, h2s
+from config_optimize import processes, selection_tree, h1s, h2s
 
 ## run all selections with RDF producing hists and counts
 df_list = []
@@ -168,11 +167,10 @@ ROOT.RDF.RunGraphs(df_list)
 # _____________________________________________________________________________________________
 
 ## Set output directory
-outdir = "/eos/home-a/adelvecc/winter2023/trying_BDT/Jlike_S1plusS2/"
+outdir = "/eos/home-a/adelvecc/winter2023/trying_BDT/output/"
 
 ## Compute Statistics and print tables
 stats = compute_statistics(df_dict, processes)
-print_table(outdir, stats)
 
 interest = dict()
 interest['Blike'] = 'Hbb'
@@ -181,25 +179,46 @@ interest['Slike'] = 'Hss'
 interest['Glike'] = 'Hgg'
 
 finals = dict()
+'''
 for c1 in selection_tree.children:
     final_selections = [s.value["name"] for s in c1.children]
     print(final_selections)
     print(c1.value["name"])
     finals[c1.value['name']] = combine_significances(stats, final_selections, [interest[c1.value['name']]])
-    
+'''
+
+purities = ["L", "M", "H"]
+
+for like in interest:
+    for low, high in ll,LL:
+        string = "{}_{}_{}".format(like, low, high)
+        to_combine = [string+"_{}".format(p) for p in purities]
+        finals[string] = combine_significances(stats, to_combine, [interest[like]])
+
 print(finals)
 
 ## Store histograms in ROOT files
+'''
+## now store histograms in ROOT files
+rdir = "/eos/home-a/adelvecc/winter2023/trying_BDT/"
+ldir = "/output/"
+os.system("mkdir -p {}".format(ldir))
 
 for sel in selection_tree.children:
 
-    fname = "{}/{}_hist2D.root".format(outdir, sel.value["name"])
+    fname = "{}/{}_hist2D.root".format(ldir, sel.value["name"])
     tf = ROOT.TFile.Open(
         fname,
         "RECREATE",
     )
     
     for proc in processes:
+        stats[proc.name] = dict()
+        stats[proc.name][]
+        
         # Write hists to file
         for df in df_dict[proc.name][sel.value["name"]][:-1]:
             df.Write()
+
+    os.system("cp {} {}".format(fname, rdir))
+'''

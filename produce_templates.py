@@ -77,6 +77,7 @@ df_list = []
 df_dict = dict()
 for proc in processes:
     df_dict[proc.name] = produce_graphs(proc, selection_tree, h1s, h2s)
+    print(df_dict)
     for sel in selection_tree.get_all_nodes():
         df_list += df_dict[proc.name][sel.value["name"]]
 

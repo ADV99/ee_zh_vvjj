@@ -40,7 +40,7 @@ class Selection:
         node.indices += [len(self.children)]
         self.children.append(node)
         self.edges.append([''.join(str(x) for x in self.indices), ''.join(str(x) for x in node.indices)])
-        print(self.edges)
+        #print(self.edges)
 
     def __str__(self):
         return str(self.value)
@@ -221,23 +221,32 @@ scores_S12 = ["B", "C", "S", "G", "Q"]
 scores_BDT = ["Hbb", "Hcc", "Hss", "Hgg", "Htautau", "HZZ_WW"]
 scores = scores_S12
 
+fs_categories = [s for s in scores if s != "Q"]
 purities = ["L", "M", "H"]
+
+ll = np.arange(0.60,1.95, 0.01)
+LL = np.arange(0.62, 1.97, 0.01)
+#ll, LL = np.meshgrid(l1,l2)
 
 purity = dict()
 ## min and max cut to define the LP, MP, and HP categories
-purity[("B", "L")] = (-999, 1.1)
-purity[("B", "M")] = (1.1, 1.9)
-purity[("B", "H")] = (1.9, 999)
-purity[("C", "L")] = (-999, 1.0)
-purity[("C", "M")] = (1.0, 1.8)
-purity[("C", "H")] = (1.8, 999)
-purity[("S", "L")] = (-999, 1.1)
-purity[("S", "M")] = (1.1, 1.7)
-purity[("S", "H")] = (1.7, 999)
-purity[("G", "L")] = (-999, 1.2)
-purity[("G", "M")] = (1.2, 1.5)
-purity[("G", "H")] = (1.5, 999)
-
+for fs in fs_categories:
+    for l1 in ll:
+        for l2 in LL:
+            purity[(fs, (l1,l2) , "L")] = (-999, l1)
+            purity[(fs, (l1,l2) , "M")] = (l1, l2)
+            purity[(fs, (l1,l2) , "H")] = (l2, 999)
+'''
+for fs in fs_categories:
+    purity[fs] = dict()
+    for l1,l2 in zip(ll, LL):
+        purity[fs][(l1,l2)] = dict()
+        purity[fs][(l1,l2)]["L"] = (-999, l1)
+        purity[fs][(l1,l2)]["M"] = (l1, l2)
+        purity[fs][(l1,l2)]["H"] = (l2, 999)
+'''
+        
+#print(purity)
 
 sel_dummy = {
     "name": "",
@@ -245,8 +254,6 @@ sel_dummy = {
     "formula": "",
     "latex": "",
 }
-
-fs_categories = [s for s in scores if s != "Q"]
 
 ## Generate tree of selections
 selection_tree = Selection(sel_base)
@@ -256,10 +263,10 @@ for fs in fs_categories:
     sel["formula"] = category_selection(fs)
     node = Selection(sel)
     selection_tree.add_child(node)
-    for p in purities:
+    for p in purity:
         sel2 = deepcopy(sel_dummy)
-        sel2["name"] = "{}like_{}".format(fs, p)
-        sel2["formula"] = purity_selection(fs, purity[(fs, p)])
+        sel2["name"] = "{}like_{}_{}_{}".format(fs, p[1][0], p[1][1], p[2])
+        sel2["formula"] = purity_selection(fs, purity[p])
         node.add_child(Selection(sel2))
 
 #selection_tree.visualize()
