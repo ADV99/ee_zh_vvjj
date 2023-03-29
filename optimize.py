@@ -169,7 +169,7 @@ ROOT.RDF.RunGraphs(df_list)
 # _____________________________________________________________________________________________
 
 ## Set output directory
-outdir = "/eos/home-a/adelvecc/winter2023/trying_BDT/output/"
+#outdir = "/eos/home-a/adelvecc/winter2023/trying_BDT/output/"
 
 ## Compute Statistics and print tables
 print(" --> Copmute statistics: ")
@@ -183,7 +183,8 @@ interest['Glike'] = 'Hgg'
 
 finals_dict = dict()
 
-f_opt = open(outdir+"/output_opt.txt","w")
+#f_opt = open(outdir+"/output_opt.txt","w")
+f_opt = open("/output_opt.txt","w")
 
 print("\n --> Computing significances : ")
 for c1 in selection_tree.children:
