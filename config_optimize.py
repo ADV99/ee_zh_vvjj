@@ -65,7 +65,7 @@ class Selection:
 # __________________________________________________________________________________________________
 ## all MC processes are defined here
 
-path = "/eos/experiment/fcc/ee/analyses/case-studies/higgs/flat_trees/zh_vvjj_v2"
+path = "/eos/experiment/fcc/ee/analyses/case-studies/higgs/flat_trees/zh_vvjj_v2/"
 processes = []
 
 hbb = Process(
@@ -88,7 +88,7 @@ hcc = Process(
 
 hss = Process(
     "Hss",
-    "{}/wzp6_ee_nunuH_Hss_ecm240_score2/*.root".format(path),
+    "{}/wzp6_ee_nunuH_Hss_ecm240_score3/*.root".format(path),
     "H #rightarrow s s",
     1.109e-05,
     1.0,
@@ -96,7 +96,7 @@ hss = Process(
 )
 hgg = Process(
     "Hgg",
-    "{}/wzp6_ee_nunuH_Hgg_ecm240_score2/*.root".format(path),
+    "{}/wzp6_ee_nunuH_Hgg_ecm240_score3/*.root".format(path),
     "H #rightarrow g g",
     0.003782,
     1.0,
@@ -105,7 +105,7 @@ hgg = Process(
 
 htautau = Process(
     "Htautau",
-    "{}/wzp6_ee_nunuH_Htautau_ecm240_score2/*.root".format(path),
+    "{}/wzp6_ee_nunuH_Htautau_ecm240_score3/*.root".format(path),
     "H #rightarrow #tau #tau",
     0.002897,
     1.0,
@@ -113,7 +113,7 @@ htautau = Process(
 )
 hww = Process(
     "HWW",
-    "{}/wzp6_ee_nunuH_HWW_ecm240_score2/*.root".format(path),
+    "{}/wzp6_ee_nunuH_HWW_ecm240_score3/*.root".format(path),
     "H #rightarrow W W",
     0.00994,
     1.0,
@@ -121,7 +121,7 @@ hww = Process(
 )
 hzz = Process(
     "HZZ",
-    "{}/wzp6_ee_nunuH_HZZ_ecm240_score2/*.root".format(path),
+    "{}/wzp6_ee_nunuH_HZZ_ecm240_score3/*.root".format(path),
     "H #rightarrow Z Z",
     0.00122,
     1.0,
@@ -130,7 +130,7 @@ hzz = Process(
 
 ww = Process(
     "WW",
-    "{}/p8_ee_WW_ecm240_score2/*.root".format(path),
+    "{}/p8_ee_WW_ecm240_score3/*.root".format(path),
     "W W",
     16.4385,
     1.0,
@@ -138,7 +138,7 @@ ww = Process(
 )
 zz = Process(
     "ZZ",
-    "{}/p8_ee_ZZ_ecm240_score2/*.root".format(path),
+    "{}/p8_ee_ZZ_ecm240_score3/*.root".format(path),
     "Z Z",
     1.35899,
     1.0,
@@ -146,7 +146,7 @@ zz = Process(
 )
 zqq = Process(
     "Zqq",
-    "{}/p8_ee_Zqq_ecm240_score2/*.root".format(path),
+    "{}/p8_ee_Zqq_ecm240_score3/*.root".format(path),
     "Z",
     52.6539,
     1.0,
@@ -154,7 +154,7 @@ zqq = Process(
 )
 qqh = Process(
     "qqH",
-    "{}/wzp6_ee_qqH_ecm240_score2/*.root".format(path),
+    "{}/wzp6_ee_qqH_ecm240_score3/*.root".format(path),
     "Z(had) H ",
     0.13635,
     1.0,
@@ -267,15 +267,17 @@ for fs in fs_categories:
     for l1 in np.arange(lmin, lmax - step, step):
         for l2 in np.arange(l1 + step, lmax, step):
             sel2 = deepcopy(sel_dummy)
-            sel2["name"] = "{}like_{}_{}".format(fs, l1, l2)
+            sel2["name"] = "{}like_{:.3f}_{:.3f}".format(fs, l1, l2)
             sel2["formula"] = "1==1"
             node2 = Selection(sel2)
             node1.add_child(node2)
             
             for p in purities:
                 sel3 = deepcopy(sel_dummy)
-                sel3["name"] = "{}like_{}_{}_{}".format(fs, l1, l2, p)
+                sel3["name"] = "{}like_{:.3f}_{:.3f}_{}".format(fs, l1, l2, p)
                 sel3["formula"] = purity_selection(fs, purity[(fs,(l1,l2),p)])
+                node3 = Selection(sel3)
+                node2.add_child(node3)
 
 #selection_tree.visualize()
 

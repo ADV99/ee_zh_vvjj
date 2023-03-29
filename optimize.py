@@ -11,7 +11,7 @@ ROOT.ROOT.EnableImplicitMT()
 
 def selection_dfs(df, proc, sel, h1s, h2s):
 
-    #print("{}: {}".format(sel["name"], sel["formula"]))
+    print("{}: {}".format(sel["name"], sel["formula"]))
     df_sel = df.Filter(sel["formula"], sel["name"])
     counts = df_sel.Count()
     dfs = []
@@ -172,6 +172,7 @@ ROOT.RDF.RunGraphs(df_list)
 outdir = "/eos/home-a/adelvecc/winter2023/trying_BDT/output/"
 
 ## Compute Statistics and print tables
+print(" --> Copmute statistics: ")
 stats = compute_statistics(df_dict, processes)
 
 interest = dict()
@@ -182,7 +183,9 @@ interest['Glike'] = 'Hgg'
 
 finals_dict = dict()
 
-print("\n --> Computing statistics : ")
+f_opt = open(outdir+"/output_opt.txt","w")
+
+print("\n --> Computing significances : ")
 for c1 in selection_tree.children:
     print(" -> ", c1.value["name"])
     finals_dict[c1.value["name"]] = dict()
@@ -193,6 +196,12 @@ for c1 in selection_tree.children:
         finals_dict[c1.value["name"]][c2.value["name"]] = combine_significances(stats, final_selections,[interest[c1.value['name']]])
 
     # look for the best significance
-    sort_ed = sorted(list(finals_dict[c1.value["name"]].keys()), key = lambda x : finals_dict[c1.value["name"]][x][0]) 
+    sort_ed = sorted(list(finals_dict[c1.value["name"]].keys()), key = lambda x : finals_dict[c1.value["name"]][x][0])
+    #print(sort_ed)
+    #print(finals_dict)
     print("Best cuts for " + c1.value["name"] + " : " , sort_ed[-1])
-    print("Best significance for " + like + " : ", finals_dict[sort_ed[-1]])
+    print("Best significance for " + c1.value["name"] + " : ", finals_dict[c1.value["name"]][sort_ed[-1]])
+    print("Best cuts for " + c1.value["name"] + " : " , sort_ed[-1], file = f_opt)
+    print("Best significance for " + c1.value["name"] + " : ", finals_dict[c1.value["name"]][sort_ed[-1]], file = f_opt)
+
+f_opt.close()
